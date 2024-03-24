@@ -1,40 +1,42 @@
-const menu = document.getElementById('menu');
-const cartBtn = document.getElementById('cart-btn');
-const cartModal = document.getElementById('cart-modal');
-const cartItemsContainer = document.getElementById('cart-items');
-const cartTotal = document.getElementById('cart-total');
-const checkoutBtn = document.getElementById('checkout-btn');
-const closeCartBtn = document.getElementById('close-modal-btn');
-const cartCounter = document.getElementById('cart-count');
-const addresInput = document.getElementById('address');
-const andresWarn = document.getElementById('andres-warn');
+
+
+const menu = document.getElementById("menu");
+const cartBtn = document.getElementById("cart-btn");
+const cartModal = document.getElementById("cart-modal");
+const cartItemsContainer = document.getElementById("cart-items");
+const cartTotal = document.getElementById("cart-total");
+const checkoutBtn = document.getElementById("checkout-btn");
+const closeModaltBtn = document.getElementById("close-modal-btn");
+const cartCounter = document.getElementById("cart-count");
+const addressInput = document.getElementById("address");
+const addressWarn = document.getElementById("address-warn");
 
 let cart = [];
 
-cartBtn.addEventListener('click', function () {
-  updateCartMoodal();
-  cartModal.style.display = 'flex';
+cartBtn.addEventListener("click", function () {
+  updateCartModal();
+  cartModal.style.display = "flex";
 
 });
 
-cartModal.addEventListener('click', function (event) {
+cartModal.addEventListener("click", function (event) {
   if (event.target === cartModal) {
-    cartModal.style.display = 'none';
+    cartModal.style.display = "none";
 
   }
 })
 
-closeCartBtn.addEventListener('click', function () {
-  cartModal.style.display = 'none';
+closeModaltBtn.addEventListener("click", function () {
+  cartModal.style.display = "none";
 });
 
 
-menu.addEventListener('click', function (event) {
-  let parentButton = event.target.closest('.add-to-cart-btn');
+menu.addEventListener("click", function (event) {
+  let parentButton = event.target.closest(".add-to-cart-btn");
 
   if (parentButton) {
-    const name = parentButton.getAttribute('data-name');
-    const price = parseFloat(parentButton.getAttribute('data-price'));
+    const name = parentButton.getAttribute("data-name");
+    const price = parseFloat(parentButton.getAttribute("data-price"));
 
     addToCart(name, price);
 
@@ -54,33 +56,143 @@ function addToCart(name, price) {
     });
   }
 
-  updateCartMoodal();
+  updateCartModal();
 
 }
 
-function updateCartMoodal() {
+function updateCartModal() {
   cartItemsContainer.innerHTML = '';
   let total = 0;
 
   cart.forEach(item => {
     const cartItemElement = document.createElement("div");
+    cartItemElement.classList.add("flex", "justify-between", "mb-4", "flex-col");
 
     cartItemElement.innerHTML = `
-    <div>
+    <div class="flex items-center justify-between">
       <div>
-        <p>${item.name}</p>
-        <p>${item.quantity}</p>
-        <p>R$ ${item.price}</p>
+        <p class="font-bold">${item.name}</p>
+        <p>Qtd: ${item.quantity}</p>
+        <p class="font-medium" id="price-p" style="margin-top: 10px; margin-bottom: 10px;">R$ ${item.price.toFixed(2)}</p>
       </div>
 
-      <div>
-        <button>
+      
+        <button class="remove-from-cart-btn" data-name="${item.name}">
           Remover
         </button>
-      </div>
+      
     </div>
     `
 
+    total += item.price * item.quantity;
+
     cartItemsContainer.appendChild(cartItemElement);
   })
+
+  cartTotal.textContent = total.toLocaleString("pt-BR", {
+    style: "currency",
+    currency: "BRL"
+  });
+
+  cartCounter.innerHTML = cart.length;
+}
+
+cartItemsContainer.addEventListener("click", function (event) {
+  if (event.target.classList.contains("remove-from-cart-btn")) {
+    const name = event.target.getAttribute("data-name");
+
+    removeItemCart(name);
+  }
+
+});
+
+function removeItemCart(name) {
+  const index = cart.findIndex(item => item.name === name);
+
+  if (index !== -1) {
+    const item = cart[index];
+
+    if (item.quantity > 1) {
+      item.quantity -= 1;
+
+      updateCartModal();
+      return;
+    }
+
+
+    cart.splice(index, 1);
+    updateCartModal();
+  }
+
+}
+
+addressInput.addEventListener("input", function (event) {
+  let inputValue = event.target.value;
+
+  if (inputValue !== "") {
+    addressWarn.classList.add("hidden");
+    addressInput.style.border = "2px solid #34d399";
+  }
+})
+
+checkoutBtn.addEventListener("click", function () {
+  const isOpen = checkRestaurantOpen();
+
+  if (!isOpen) {
+
+    Toastify({
+      text: "Desculpe, estamos fechados no momento! Volte mais tarde!",
+      duration: 3000,
+      close: true,
+      gravity: "top", 
+      position: "right", 
+      stopOnFocus: true, 
+      style: {
+        background: "#ef4444",
+      },
+    }).showToast();
+
+    return;
+  }
+
+  if (cart.length === 0) return;
+  if (addressInput.value === "") {
+    addressWarn.classList.remove("hidden");
+    addressInput.style.border = "2px solid #e53e3e";
+
+    return;
+  }
+
+  const cartItems = cart.map((item) => {
+    return (
+      ` ${item.name} Quantidade: (${item.quantity}) Preço: R$${item.price} |`
+    )
+  }).join("");
+
+  const message = encodeURIComponent(cartItems);
+  const phone = "31984655356";
+
+  window.open(`https://wa.me/${phone}?text=Olá, gostaria de fazer o pedido dos seguintes itens: ${message} Endereço: ${addressInput.value}`, "_blank");
+
+  cart = [];
+  addressInput.value = "";
+  updateCartModal();
+})
+
+function checkRestaurantOpen() {
+  const data = new Date();
+  const hora = data.getHours();
+
+  return hora >= 18 && hora <= 22;
+}
+
+const spanItem = document.getElementById("date-span");
+const isOpen = checkRestaurantOpen();
+
+if (isOpen) {
+  spanItem.classList.remove("bg-red-500");
+  spanItem.classList.add("bg-green-600");
+} else {
+  spanItem.classList.remove("bg-green-600");
+  spanItem.classList.add("bg-red-500");
 }
